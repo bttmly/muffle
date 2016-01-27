@@ -1,0 +1,11 @@
+{
+  "name": "muffle",
+  "version": "1.0.0",
+  "description": "squelch stdio",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test"
+  },
+  "author": "Nick Bottomley (github.com/nickb1080)",
+  "license": "MIT"
+}
