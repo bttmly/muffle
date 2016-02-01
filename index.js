@@ -12,23 +12,23 @@ var descriptors = {
   console: {
     object: global,
     original: Object.getOwnPropertyDescriptor(global, "console"),
-    silenced: makeDescriptor(function () { return silentConsole }),
+    muffled: makeDescriptor(function () { return silentConsole }),
   },
   stdout: {
     object: process,
     original: Object.getOwnPropertyDescriptor(process, "stdout"),
-    silenced: makeDescriptor(function () { return ws }),
+    muffled: makeDescriptor(function () { return ws }),
   },
   stderr: {
     object: process,
     original: Object.getOwnPropertyDescriptor(process, "stderr"),
-    silenced: makeDescriptor(function () { return ws }),
+    muffled: makeDescriptor(function () { return ws }),
   }
 };
 
 function muffle () {
   Object.keys(descriptors).forEach(function (k) {
-    Object.defineProperty(descriptors[k].object, k, descriptors[k].silenced);
+    Object.defineProperty(descriptors[k].object, k, descriptors[k].muffled);
   });
 
   return function unmuffle () {
