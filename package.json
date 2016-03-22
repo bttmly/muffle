@@ -1,6 +1,6 @@
 {
   "name": "muffle",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "squelch stdio",
   "main": "index.js",
   "scripts": {
