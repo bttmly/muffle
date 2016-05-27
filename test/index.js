@@ -73,7 +73,7 @@ describe("muffle", function () {
     expect(no).toEqual(false);
   });
 
-  const methods = ["log","info","warn","error","dir","time","timeEnd","trace","assert"];
+  const methods = ["log", "info", "warn", "error", "dir", "time", "timeEnd", "trace", "assert"];
   it("has the console prototype methods", function () {
     methods.forEach(function (m) {
       expect(muffle[m]).toBeA("function");
@@ -81,6 +81,6 @@ describe("muffle", function () {
   });
 
   it("has the Console constructor", function () {
-
+    expect(muffle.Console).toBeA("function");
   });
 });

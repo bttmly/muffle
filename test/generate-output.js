@@ -2,14 +2,12 @@ var muffle = require("../");
 var fs = require("fs");
 var path = require("path");
 
-function allDone (streams, fn) {
+function allClosed (streams, fn) {
+  var count = streams.length;
   var done = 0;
 
-  function handle (stream) {
-    ++done;
-    if (done === streams.length) {
-      fn();
-    }
+  function handle () {
+    if (++done === count) fn();
   }
 
   streams.forEach(function (stream) {
@@ -34,7 +32,7 @@ var series = [
     var s2 = fs.createReadStream(path.join(__dirname, "/nums"));
     s1.pipe(process.stdout);
     s2.pipe(process.stderr);
-    allDone([s1, s2], next);
+    allClosed([s1, s2], next);
   },
 
   function three () {
@@ -46,15 +44,12 @@ var series = [
 
 function run (_fns, cb) {
   var fns = _fns.slice();
-
-  function next () {
+  (function next () {
     if (fns.length === 0) {
       return cb();
     }
     fns.shift()(next);
-  }
-
-  fns.shift()(next);
+  })();
 }
 
 

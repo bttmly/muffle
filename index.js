@@ -91,4 +91,6 @@ Object.getOwnPropertyNames(Console.prototype).forEach(function (method) {
   };
 });
 
+muffle.Console = _console.Console;
+
 module.exports = muffle;
