@@ -41,9 +41,6 @@ function proxyWritable (stream) {
   });
   prox.__proxyWritable = true;
 
-  // necessary?
-  prox.on("error", noop)
-
   return prox;
 }
 

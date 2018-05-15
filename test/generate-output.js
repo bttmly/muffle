@@ -1,47 +1,36 @@
-var muffle = require("../");
-var fs = require("fs");
-var path = require("path");
+const muffle = require("../");
+const fs = require("fs");
+const path = require("path");
+const e2p = require("event-to-promise");
 
-var methods = ["log", "info", "warn", "error"];
+const methods = ["log", "info", "warn", "error"];
+process.on("unhandledRejection", err => { throw err });
 
-var series = [
-  function one (next) {
-    muffle();
-    spew("muffled");
-    process.stdout.emit("error", new Error("unhandled error event"));
-    muffle.unmuffle();
-    spew("unmuffled");
-    next();
-  },
+(async function () {
+  muffle();
+  spew("muffled");
+  muffle.unmuffle();
+  spew("unmuffled");
 
-  function two (next) {
-    var s1 = fs.createReadStream(path.join(__dirname, "/nums"));
-    var s2 = fs.createReadStream(path.join(__dirname, "/nums"));
-    s1.pipe(process.stdout);
-    s2.pipe(process.stderr);
-    allClosed([s1, s2], next);
-  },
+  // ensure we can pipe to stdout/stderr after unmuffle
+  const s1 = fs.createReadStream(path.join(__dirname, "/nums"));
+  const s2 = fs.createReadStream(path.join(__dirname, "/nums"));
+  s1.pipe(process.stdout);
+  s2.pipe(process.stderr);
 
-  function three () {
-    muffle();
-    muffle.log("____"); // delimiter
-    throw new Error("thrown error");
-  }
-];
+  await Promise.all([
+    e2p(s1, "close"),
+    e2p(s2, "close")
+  ])
 
-function run (_fns, cb) {
-  var fns = _fns.slice();
-  (function next () {
-    if (fns.length === 0) {
-      return cb();
-    }
-    fns.shift()(next);
-  })();
-}
-
+  // ensure errors will appear even with muffling
+  muffle();
+  muffle.log("____");
+  throw new Error("thrown error");
+})()
 
 function spew (stem) {
-  methods.forEach(function (m) {
+  methods.forEach((m) => {
     console[m](m, stem, "from console"); // these will not appear when muffle is active
     muffle[m](m, stem, "from muffle"); // these will always appear
   });
@@ -49,23 +38,3 @@ function spew (stem) {
   process.stdout.write(stem + " stdout\n");
   process.stderr.write(stem + " stderr\n");
 }
-
-run(series, function () { /* we'll have a thrown error before this can be called */ });
-
-
-function allClosed (streams, fn) {
-  var count = streams.length;
-  var done = 0;
-
-  function handle () {
-    if (++done === count) {
-      process._rawDebug("all closed")
-      fn();
-    }
-  }
-
-  streams.forEach(function (stream) {
-    stream.on("close", handle);
-  });
-}
-
