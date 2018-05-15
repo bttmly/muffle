@@ -2,20 +2,22 @@ var Console = require("console").Console;
 var Writable = require("stream").Writable;
 
 function makeGetter (ret) {
-  return { get: function () { return ret; }, enumerable: true, configurable: true };
+  return { get: () => ret, enumerable: true, configurable: true };
 }
 
 var isMuffled = false;
 var _console  = global.console;
 
+const noop = () => {}
+
 function proxyMethod (source, proxy) {
   return function (key) {
     Object.defineProperty(proxy, key, {
-      enumerable: true, 
+      enumerable: true,
       configurable: true,
       get: function () {
         if (typeof source[key] === "function" && isMuffled) {
-          return function () {};
+          return noop;
         }
         return source[key];
       },
@@ -27,7 +29,7 @@ function proxyMethod (source, proxy) {
 }
 
 function proxyWritable (stream) {
-  var prox = new Writable({ 
+  var prox = new Writable({
     write: function (chunk, enc, cb) {
       if (!isMuffled) {
         return stream.write(chunk, enc, cb);
@@ -39,17 +41,14 @@ function proxyWritable (stream) {
   });
   prox.__proxyWritable = true;
 
-  var proto = stream;
-  while (proto) {
-    Object.getOwnPropertyNames(proto).forEach(proxyMethod(stream, prox));
-    proto = Object.getPrototypeOf(proto);
-  }
+  // necessary?
+  prox.on("error", noop)
 
   return prox;
 }
 
-var consoleProxy = new Console(new Writable({ 
-  write: function (chunk, enc, cb) { 
+var consoleProxy = new Console(new Writable({
+  write: function (chunk, enc, cb) {
     if (cb) setImmediate(cb);
     return true;
   }
@@ -76,18 +75,18 @@ Object.defineProperty(global, "console", makeGetter(consoleProxy));
 Object.defineProperty(process, "stdout", makeGetter(stdoutProxy));
 Object.defineProperty(process, "stderr", makeGetter(stderrProxy));
 
-Object.getOwnPropertyNames(Console.prototype).forEach(function (method) {
+Object.getOwnPropertyNames(Console.prototype).forEach((method) => {
   if (typeof Console.prototype[method] !== "function") return;
   if (method === "constructor") return;
 
-  muffle[method] = function () {
-    _console[method].apply(_console, arguments);
+  muffle[method] = (...args) => {
+    _console[method](...args)
     return muffle;
   };
 
-  consoleProxy[method] = function () {
+  consoleProxy[method] = (...args) => {
     if (isMuffled) return;
-    return _console[method].apply(_console, arguments);
+    return _console[method](...args)
   };
 });
 

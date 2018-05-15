@@ -19,7 +19,7 @@ var err = chunks[1];
 
 describe("generated output", function () {
   var methods = ["log", "info", "warn", "error"];
-  
+
   it("muffle.log() and friends work when muffling is active", function () {
     methods.forEach(function (m) {
       expect(logs).toInclude(m + " muffled from muffle");

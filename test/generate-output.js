@@ -2,19 +2,6 @@ var muffle = require("../");
 var fs = require("fs");
 var path = require("path");
 
-function allClosed (streams, fn) {
-  var count = streams.length;
-  var done = 0;
-
-  function handle () {
-    if (++done === count) fn();
-  }
-
-  streams.forEach(function (stream) {
-    stream.on("close", handle);
-  });
-}
-
 var methods = ["log", "info", "warn", "error"];
 
 var series = [
@@ -66,4 +53,19 @@ function spew (stem) {
 run(series, function () { /* we'll have a thrown error before this can be called */ });
 
 
+function allClosed (streams, fn) {
+  var count = streams.length;
+  var done = 0;
+
+  function handle () {
+    if (++done === count) {
+      process._rawDebug("all closed")
+      fn();
+    }
+  }
+
+  streams.forEach(function (stream) {
+    stream.on("close", handle);
+  });
+}
 
