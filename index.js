@@ -1,36 +1,17 @@
-var Console = require("console").Console;
-var Writable = require("stream").Writable;
+const { Console } = require("console");
+const { Writable } = require("stream");
 
 function makeGetter (ret) {
   return { get: () => ret, enumerable: true, configurable: true };
 }
 
-var isMuffled = false;
-var _console  = global.console;
-
-const noop = () => {}
-
-function proxyMethod (source, proxy) {
-  return function (key) {
-    Object.defineProperty(proxy, key, {
-      enumerable: true,
-      configurable: true,
-      get: function () {
-        if (typeof source[key] === "function" && isMuffled) {
-          return noop;
-        }
-        return source[key];
-      },
-      set: function (k, value) {
-        source[k] = value;
-      }
-    });
-  };
-}
+let isMuffled = false;
+const _console  = global.console;
+const muffleSymbol = Symbol("muffle");
 
 function proxyWritable (stream) {
-  var prox = new Writable({
-    write: function (chunk, enc, cb) {
+  const prox = new Writable({
+    write (chunk, enc, cb) {
       if (!isMuffled) {
         return stream.write(chunk, enc, cb);
       }
@@ -39,35 +20,36 @@ function proxyWritable (stream) {
       return true;
     }
   });
-  prox.__proxyWritable = true;
-
+  prox[muffleSymbol] = true;
   return prox;
 }
 
-var consoleProxy = new Console(new Writable({
-  write: function (chunk, enc, cb) {
+const consoleProxy = new Console(new Writable({
+  write (chunk, enc, cb) {
     if (cb) setImmediate(cb);
     return true;
   }
 }));
-consoleProxy.__muffled = true;
+consoleProxy[muffleSymbol] = true;
 
 function muffle () {
   isMuffled = true;
   return muffle;
 }
 
-muffle.unmuffle = function unmuffle () {
+muffle.unmuffle = () => {
   isMuffled = false;
   return muffle;
 };
 
-muffle.isActive = function isActive () {
+muffle.isActive = () => {
   return isMuffled;
 };
 
-var stdoutProxy = proxyWritable(process.stdout);
-var stderrProxy = proxyWritable(process.stderr);
+muffle.Console = _console.Console;
+
+const stdoutProxy = proxyWritable(process.stdout);
+const stderrProxy = proxyWritable(process.stderr);
 Object.defineProperty(global, "console", makeGetter(consoleProxy));
 Object.defineProperty(process, "stdout", makeGetter(stdoutProxy));
 Object.defineProperty(process, "stderr", makeGetter(stderrProxy));
@@ -87,6 +69,6 @@ Object.getOwnPropertyNames(Console.prototype).forEach((method) => {
   };
 });
 
-muffle.Console = _console.Console;
 
 module.exports = muffle;
+module.exports.symbol = muffleSymbol;
